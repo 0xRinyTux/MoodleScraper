@@ -1,0 +1,12 @@
+# Ambienti virtuali
+.venv/
+venv/
+env/
+
+# Cache di Python
+__pycache__/
+*.pyc
+
+# Dati del progetto
+.moodle_cache.json
+Corso/
