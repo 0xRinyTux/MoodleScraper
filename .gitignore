@@ -10,3 +10,8 @@ __pycache__/
 # Dati del progetto
 .moodle_cache.json
 Corso/
+.creds
+settings.json
+.moodle_cache.json
+.moodle_cookie.json
+moodle_unisa_dl/__pycache__/
