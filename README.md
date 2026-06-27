@@ -1,78 +1,91 @@
-# 🚀 MoodleScraper
+# 🎓 Moodle Fast Downloader Pro
 
-Un downloader asincrono ad alte prestazioni per Moodle, dotato di un'interfaccia terminale interattiva (TUI). Questo strumento automatizza il download dei materiali del corso superando la lentezza dei classici scraper sequenziali.
+Un tool a riga di comando (CLI) altamente ottimizzato per l'estrazione e il download asincrono del materiale didattico dalle piattaforme Moodle (ottimizzato per l'Università degli Studi di Salerno - UNISA). 
 
----
-
-## ✨ Funzionalità principali
-
-* ⚡ **Discovery Concorrente**: Risolve reindirizzamenti, risorse e strutture delle cartelle in parallelo usando `aiohttp` e `asyncio.gather`, riducendo i tempi di attesa da minuti a pochissimi secondi.
-* 📦 **Smart Caching**: Salva la struttura del corso in un file JSON locale (`.moodle_cache.json`). Se riavvii lo script, la mappatura è istantanea.
-* 🎨 **TUI Interattiva**: Seleziona visivamente quali sezioni del corso scaricare tramite caselle di controllo (`InquirerPy`) navigabili con le frecce della tastiera.
-* 📊 **Dashboard in tempo reale**: Interfaccia grafica integrata nel terminale (`rich`) che mostra contemporaneamente la barra di avanzamento globale e un pannello auto-scorrimento con i log live dei file.
-* 🛡️ **Ottimizzazione di Rete**: Gestione intelligente delle connessioni parallele tramite semafori configurabili per scaricare alla massima velocità consentita dalla tua banda.
+Progettato con un'architettura modulare, questo script riduce i tempi di interazione del 90% grazie al lazy-loading e massimizza l'efficienza di rete tramite download paralleli e controlli di ridondanza.
 
 ---
 
-## 🛠️ Requisiti e Installazione
+## ✨ Caratteristiche Principali
 
-Assicurati di avere **Python 3.10+** installato sul tuo sistema.
+* 🚀 **Estremamente Veloce:** Implementa `aiohttp` e `asyncio` per mappare i corsi e scaricare i file in parallelo, sfruttando al massimo la larghezza di banda.
+* 🧠 **Lazy-Loading & Zero-Spam:** Analizza la struttura dei corsi esclusivamente tramite il parsing del DOM HTML principale. Non effettua richieste HTTP superflue ai file prima dell'effettivo momento del download, prevenendo ban e sovraccarichi al server universitario.
+* 🎯 **Interattivo e Selettivo:** Grazie a `InquirerPy`, offre un'interfaccia terminale per cercare (fuzzy-search) e selezionare in modo granulare i corsi e le specifiche sezioni da scaricare.
+* ♻️ **Smart Caching (Idempotenza):** Controlla i percorsi di destinazione locali in tempo reale; se un file esiste già, viene automaticamente saltato per risparmiare tempo e dati.
+* 🎨 **UI Terminale Moderna:** Utilizza `rich` per fornire barre di avanzamento grafiche, misurazione della velocità di trasferimento e un pannello di logging pulito.
+* ⚙️ **Configurazione Flessibile:** Supporta la personalizzazione del percorso di download tramite CLI interattiva o in modo persistente nel file `settings.json`.
 
-1. **Clona il repository**:
+---
+
+## 🛠️ Requisiti
+
+* **Python 3.8+**
+* Le dipendenze elencate nel file `requirements.txt`.
+
+---
+
+## 📦 Installazione
+
+1. Clona la repository sul tuo ambiente locale:
    ```bash
    git clone [https://github.com/0xRinyTux/MoodleScraper.git](https://github.com/0xRinyTux/MoodleScraper.git)
    cd MoodleScraper
    ```
 
-2. **Crea e attiva un ambiente virtuale** (consigliato):
+2. (Opzionale ma consigliato) Crea e attiva un ambiente virtuale:
    ```bash
    python3 -m venv .venv
-   source .venv/bin/activate  # Su Windows usa: .venv\Scripts\activate
+   source .venv/bin/activate  # Su Linux/macOS
+   # .venv\Scripts\activate   # Su Windows
    ```
 
-3. **Installa le dipendenze**:
+3. Installa le dipendenze richieste:
    ```bash
    pip install -r requirements.txt
    ```
 
 ---
 
-## 🚀 Come usarlo
+## 🚀 Utilizzo
 
-Esegui lo script principale dal terminale:
+Per avviare lo strumento in modalità interattiva, esegui semplicemente:
 
 ```bash
-python moodle_dl.py
+python3 moodle_unisa_dl/main.py
 ```
 
-### 🔑 Come recuperare il cookie `MoodleSession`
-Per accedere ai file del corso, lo script ha bisogno del tuo cookie di sessione (non memorizza le tue credenziali):
-1. Apri il browser e vai sulla pagina del corso Moodle.
-2. Premi `F12` (o tasto destro -> *Ispeziona*) per aprire i Developer Tools.
-3. Vai alla scheda **Applicazione** (o **Archiviazione** / **Storage** a seconda del browser).
-4. Nel menu a sinistra espandi la voce **Cookie** e seleziona l'URL di Moodle.
-5. Cerca la riga con il nome **`MoodleSession`** e copia il suo valore (una stringa alfanumerica).
-6. Incolla il valore nel terminale quando richiesto dallo script.
+Al primo avvio, ti verranno richieste le credenziali di accesso (che verranno salvate in locale in modo sicuro per le sessioni successive) e la cartella predefinita in cui salvare i file dei corsi.
 
----
+### Argomenti CLI Avanzati
 
-## ⚙️ Opzioni della riga di comando
+Puoi bypassare i menu interattivi e automatizzare l'esecuzione passando parametri espliciti da riga di comando:
 
-Puoi personalizzare il comportamento dello script usando i seguenti flag:
+| Argomento | Tipo | Default | Descrizione |
+| :--- | :--- | :--- | :--- |
+| `--workers` | Intero | `32` | Definisce il numero massimo di download concorrenti. |
+| `--output` | Stringa | N/A | Imposta direttamente il path della cartella di destinazione, ignorando i prompt interattivi e il file di configurazione. |
 
-| Flag | Descrizione | Default |
-| :--- | :--- | :--- |
-| `--workers <int>` | Numero di download simultanei da gestire in parallelo. | `32` |
-| `--output <path>` | Cartella di destinazione in cui salvare i file ordinati. | `Corso` |
-| `--refresh` | Ignora la cache JSON locale e forza una nuova discovery sul sito. | *Disattivato* |
-
-*Esempio per scaricare con 64 connessioni simultanee in una cartella specifica:*
+**Esempio:**
 ```bash
-python scrapeCourseMoodle.py --workers 64 --output "Materiale_Universita"
+python3 moodle_unisa_dl/main.py --workers 16 --output /percorso/personalizzato/esami
 ```
 
 ---
 
-## 📝 Licenza e Disclaimer
+## 🏗️ Struttura del Progetto
 
-Questo progetto è stato sviluppato esclusivamente a scopo didattico e personale. L'autore non si assume alcuna responsabilità per un eventuale uso improprio dello strumento o per violazioni dei termini di servizio della piattaforma e-learning. Si prega di utilizzare il tool in modo responsabile per non sovraccaricare i server universitari.
+Il progetto è suddiviso nei seguenti moduli per garantire scalabilità e pulizia del codice:
+
+* `main.py` - Orchestratore principale e gestione degli argomenti/UI.
+* `auth.py` - Gestione del login, cookie e sessioni persistenti.
+* `discovery.py` - Scraping asincrono e parsing HTML per l'estrazione dei metadati di corsi, sezioni e file.
+* `downloader.py` - Core asincrono per il download dei file, risoluzione degli header HTTP on-the-fly e gestione dell'UI grafica.
+* `models.py` - Classi di dati strutturati (`DownloadItem`, `Section`).
+* `utils.py` - Funzioni di supporto, sanificazione dei nomi dei file e gestione I/O dei file JSON.
+
+---
+
+## ⚠️ Disclaimer e Uso Responsabile
+
+Questo strumento è stato creato a scopo puramente educativo e per facilitare l'organizzazione del materiale accademico agli studenti. 
+Si prega di utilizzarlo in modo responsabile. **Non impostare un numero di workers esageratamente alto** per evitare di saturare i server dell'Università, comportandosi a tutti gli effetti come un attacco DoS. L'autore non si assume alcuna responsabilità per l'uso improprio dello script o per eventuali violazioni dei termini di servizio della piattaforma ospitante.
