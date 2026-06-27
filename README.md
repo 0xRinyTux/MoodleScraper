@@ -68,7 +68,7 @@ Puoi personalizzare il comportamento dello script usando i seguenti flag:
 
 *Esempio per scaricare con 64 connessioni simultanee in una cartella specifica:*
 ```bash
-python moodle_dl.py --workers 64 --output "Materiale_Universita"
+python scrapeCourseMoodle.py --workers 64 --output "Materiale_Universita"
 ```
 
 ---
