@@ -1,8 +1,95 @@
 import getpass
+import os
+import re
 import aiohttp
 from bs4 import BeautifulSoup
 from InquirerPy import inquirer
-from utils import SETTINGS_FILE, CREDS_FILE, load_json, save_json
+from InquirerPy.validator import NumberValidator
+from .utils import SETTINGS_FILE, CREDS_FILE, load_json, save_json
+
+async def handle_mfa(session: aiohttp.ClientSession, html: str) -> bool:
+    """Handle MFA/OTP verification flow after login."""
+    soup = BeautifulSoup(html, "lxml")
+    
+    # Check if we're on the MFA page
+    if "tool-mfa-verify-container" not in html and "id_verificationcode" not in html:
+        return False  # Not an MFA page
+    
+    print("[*] Rilevata autenticazione a più fattori (MFA). Richiesto codice OTP via email.")
+    
+    # Extract form data from MFA page
+    form = soup.find("form", {"id": re.compile(r"mform1")}) or soup.find("form", {"action": re.compile(r"tool/mfa/auth")})
+    if not form:
+        print("[X] Errore: impossibile trovare il form MFA.")
+        return False
+    
+    # Extract form fields (including hidden and alphaext types)
+    payload = {}
+    for inp in form.find_all("input"):
+        name = inp.get("name")
+        value = inp.get("value", "")
+        if name:
+            payload[name] = value
+    
+    # Verify required fields
+    required_fields = ["factor", "sesskey", "_qf__tool_mfa_local_form_login_form"]
+    for field in required_fields:
+        if field not in payload:
+            print(f"[X] Errore: campo obbligatorio '{field}' mancante nel form MFA.")
+            return False
+    
+    # Prompt user for OTP code with validation (6 digits)
+    try:
+        otp = await inquirer.text(
+            message="Inserisci il codice OTP a 6 cifre ricevuto via email:",
+            validate=NumberValidator(message="Inserisci solo numeri"),
+            filter=lambda x: x.strip(),
+            invalid_message="Il codice deve essere di 6 cifre numeriche",
+            multiline=False,
+        ).execute_async()
+        
+        # Validate OTP is exactly 6 digits
+        if not re.match(r"^\d{6}$", otp):
+            print("[X] Codice OTP non valido: deve essere esattamente 6 cifre numeriche.")
+            return False
+            
+    except KeyboardInterrupt:
+        print("\n[X] Annullato dall'utente.")
+        return False
+    except Exception as e:
+        print(f"[X] Errore durante l'inserimento OTP: {e}")
+        return False
+    
+    # Add OTP to payload
+    payload["verificationcode"] = otp
+    payload["submitbutton"] = "Prosegui"
+    
+    # Submit MFA form
+    mfa_url = "https://elearning.informatica.unisa.it/el-platform/admin/tool/mfa/auth.php"
+    print("[*] Invio codice OTP...")
+    
+    try:
+        async with session.post(mfa_url, data=payload, allow_redirects=True) as r:
+            final_html = await r.text()
+            
+        # Check if MFA succeeded (no error messages, redirected away from MFA page)
+        if "tool-mfa-verify-container" in final_html or "id_verificationcode" in final_html:
+            # Check for error messages
+            error_soup = BeautifulSoup(final_html, "lxml")
+            error_elem = error_soup.find("div", class_="invalid-feedback") or error_soup.find("div", id="id_error_verificationcode")
+            if error_elem and error_elem.get_text(strip=True):
+                print(f"[X] OTP non valido: {error_elem.get_text(strip=True)}")
+            else:
+                print("[X] Codice OTP non valido o scaduto.")
+            return False
+            
+        print("[+] Verifica MFA completata con successo!")
+        return True
+        
+    except Exception as e:
+        print(f"[X] Errore durante l'invio del codice OTP: {e}")
+        return False
+
 
 async def check_session_validity(session: aiohttp.ClientSession) -> bool:
     try:
@@ -85,6 +172,16 @@ async def load_or_perform_login(session: aiohttp.ClientSession) -> bool:
                 creds.pop("password", None)
                 save_json(CREDS_FILE, creds)
             return False
+        
+        # Check if MFA is required after successful credentials
+        if "tool-mfa-verify-container" in final_html or "id_verificationcode" in final_html:
+            mfa_success = await handle_mfa(session, final_html)
+            if not mfa_success:
+                print("[X] Verifica MFA fallita.")
+                return False
+            # After successful MFA, get the final page HTML
+            async with session.get("https://elearning.informatica.unisa.it/el-platform/") as r:
+                final_html = await r.text()
             
         moodle_cookie = ""
         for c in session.cookie_jar:

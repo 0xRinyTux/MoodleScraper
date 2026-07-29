@@ -10,11 +10,10 @@ from InquirerPy import inquirer
 from InquirerPy.base.control import Choice
 from InquirerPy.validator import PathValidator
 
-from auth import load_or_perform_login
-from discovery import discover_course, get_courses
-from downloader import run_downloads
-from utils import SETTINGS_FILE, load_json, sanitize, save_json
-
+from .auth import load_or_perform_login
+from .discovery import discover_course, get_courses
+from .downloader import run_downloads
+from .utils import SETTINGS_FILE, load_json, sanitize, save_json
 
 async def main_async():
     parser = argparse.ArgumentParser(description="Moodle Fast Downloader Pro - Modular")
@@ -24,7 +23,12 @@ async def main_async():
 
     jar = aiohttp.CookieJar(unsafe=True)
     
-    async with aiohttp.ClientSession(cookie_jar=jar) as session:
+    # Custom User-Agent to avoid "python3.12/aiohttp" in email notifications
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+    
+    async with aiohttp.ClientSession(cookie_jar=jar, headers=headers) as session:
         if not await load_or_perform_login(session):
             print("[!] Autenticazione fallita. Chiusura.")
             return
