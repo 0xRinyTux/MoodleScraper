@@ -10,10 +10,10 @@ from InquirerPy import inquirer
 from InquirerPy.base.control import Choice
 from InquirerPy.validator import PathValidator
 
-from .auth import load_or_perform_login
-from .discovery import discover_course, get_courses
-from .downloader import run_downloads
-from .utils import SETTINGS_FILE, load_json, sanitize, save_json
+from auth import load_or_perform_login
+from discovery import discover_course, get_courses
+from downloader import run_downloads
+from utils import SETTINGS_FILE, load_json, sanitize, save_json
 
 async def main_async():
     parser = argparse.ArgumentParser(description="Moodle Fast Downloader Pro - Modular")

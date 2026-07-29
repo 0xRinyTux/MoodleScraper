@@ -5,7 +5,7 @@ import aiohttp
 from bs4 import BeautifulSoup
 from InquirerPy import inquirer
 from InquirerPy.validator import NumberValidator
-from .utils import SETTINGS_FILE, CREDS_FILE, load_json, save_json
+from utils import SETTINGS_FILE, CREDS_FILE, load_json, save_json
 
 async def handle_mfa(session: aiohttp.ClientSession, html: str) -> bool:
     """Handle MFA/OTP verification flow after login."""
